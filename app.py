@@ -4,75 +4,70 @@ import json
 from PyQt5.QtWidgets import QApplication, QMainWindow, QGridLayout, QPushButton, QWidget, QVBoxLayout, QHBoxLayout, QMenuBar, QAction, QLabel, QFileDialog, QMessageBox, QSizePolicy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPalette, QColor
+from board import Board
 
 class SudokuSolver(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SudokuSolver")
-        self.setGeometry(100, 100, 600, 700)
+        self.setGeometry(100, 100, 1280, 720)
         #self.setGeometry(300, 300, 300, 200)
 
-        self.board = [[0 for _ in range(9)] for _ in range(9)]
+        self.board = Board()
         self.initUI()
+        self.update_board_view()
 
     def initUI(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         
-        self.grid_layout = QGridLayout()
-        self.grid_layout.setSpacing(0)
-        self.create_board()
+        self.board_layout = QGridLayout()
+        self.board_layout.setSpacing(0)
+        self.create_board_layout()
 
         self.panel_layout = QVBoxLayout()
-        self.create_panel()
+        self.create_panel_layout()
 
         self.main_layout = QHBoxLayout()
-        self.main_layout.addLayout(self.grid_layout, 2)
+        self.main_layout.addLayout(self.board_layout, 2)
         self.main_layout.addLayout(self.panel_layout, 1)
         self.central_widget.setLayout(self.main_layout)
 
         self.create_menu()
 
-    def create_board(self):
-        self.cells = []
+    def create_board_layout(self):
+        self.cell_views = []
         for i in range(9):
             row = []
             for j in range(9):
-                cell = QPushButton("")
-                #cell.setFixedSize(50, 50)
-                cell.setFont(QFont("Arial", 20))
-                cell.setStyleSheet(self.get_cell_style(i, j))
-                cell.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-                cell.clicked.connect(self.select_cell)
-                self.grid_layout.addWidget(cell, i, j)
+                cell = self.create_board_cell(i, j)
+                self.board_layout.addWidget(cell, i, j)
                 row.append(cell)
-            self.cells.append(row)
-        self.selected_cell = None
+            self.cell_views.append(row)
 
-    def get_cell_style(self, i, j):
-        style = "background-color: white; border: 1px solid black;"
-        if i % 3 == 0 and i != 0:
-            style += "border-top: 2px solid black;"
-        if j % 3 == 0 and j != 0:
-            style += "border-left: 2px solid black;"
-        if (i + 1) % 3 == 0 and (i + 1) != 9:
-            style += "border-bottom: 2px solid black;"
-        if (j + 1) % 3 == 0 and (j + 1) != 9:
-            style += "border-right: 2px solid black;"
-        return style
 
-    def create_panel(self):
+    def create_board_cell(self,i, j, is_modifiable=True):        
+        cell = QPushButton("")
+        cell.setFont(QFont("Arial", 20))
+        cell.setStyleSheet(self.get_default_cell_style(i, j))
+        cell.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        cell.clicked.connect(lambda _, x=i, y=j: self.select_cell_event(x, y))
+        if(not is_modifiable):
+            cell.setEnabled(False)
+        return cell
+
+    def create_panel_layout(self):
         for number in range(1, 10):
             button = QPushButton(str(number))
             button.setFixedSize(50, 50)
             button.setFont(QFont("Arial", 20))
-            button.clicked.connect(self.input_number)
+            button.clicked.connect(lambda _, n=number: self.input_number_event(n))
             self.panel_layout.addWidget(button)
 
         self.eraser_button = QPushButton("Gumka")
         #self.eraser_button.setFixedSize(50, 50)
         self.eraser_button.setFont(QFont("Arial", 20))
-        self.eraser_button.clicked.connect(self.erase_cell)
+        self.eraser_button.clicked.connect(self.erase_cell_event)
         self.panel_layout.addWidget(self.eraser_button)
 
         self.new_board_button = QPushButton("Nowa plansza")
@@ -86,7 +81,7 @@ class SudokuSolver(QMainWindow):
 
         file_menu = menu_bar.addMenu("Plik")
         save_action = QAction("Zapisz grę", self)
-        save_action.triggered.connect(self.save_game)
+        save_action.triggered.connect(self.save_game_event)
         load_action = QAction("Wczytaj grę", self)
         load_action.triggered.connect(self.load_game)
         file_menu.addAction(save_action)
@@ -94,113 +89,75 @@ class SudokuSolver(QMainWindow):
 
         options_menu = menu_bar.addMenu("Opcje")
         about_action = QAction("O aplikacji", self)
-        about_action.triggered.connect(self.show_about)
+        about_action.triggered.connect(self.show_about_event)
         options_menu.addAction(about_action)
 
-    def select_cell(self):
-        button = self.sender()
-        if self.selected_cell:
-            self.selected_cell.setStyleSheet(self.get_cell_style(*self.get_cell_position(self.selected_cell)))
-        self.selected_cell = button
-        self.selected_cell.setStyleSheet("background-color: lightblue;")
+    def get_default_cell_style(self, i, j):
+        style = "background-color: white; border: 1px solid black;"
+        if i % 3 == 0 and i != 0:
+            style += "border-top: 2px solid black;"
+        if j % 3 == 0 and j != 0:
+            style += "border-left: 2px solid black;"
+        if (i + 1) % 3 == 0 and (i + 1) != 9:
+            style += "border-bottom: 2px solid black;"
+        if (j + 1) % 3 == 0 and (j + 1) != 9:
+            style += "border-right: 2px solid black;"
+        return style
 
-    def input_number(self):
-        if not self.selected_cell:
-            return
+    def update_board_view(self):
+        for i in range(9):
+            for j in range(9):
+                cell = self.board.get_cells()[i][j]
+                cell_view = self.cell_views[i][j]
+                cell_view.setText(str(cell.value) if cell.value != None else "")
+                cell_style = self.get_default_cell_style(i, j)
 
-        button = self.sender()
-        number = int(button.text())
-        row, col = self.get_cell_position(self.selected_cell)
-        
-        self.board[row][col] = number
-        self.selected_cell.setText(str(number))
-        self.check_board()
+                if(cell == self.board.selected_cell):
+                    cell_style += "background-color: lightblue;"
 
-    def erase_cell(self):
-        if not self.selected_cell:
-            return
+                if(not cell.is_valid):
+                    cell_style += "color: red;"
 
-        row, col = self.get_cell_position(self.selected_cell)
-        self.board[row][col] = 0
-        self.selected_cell.setText("")
+                if(not cell.is_modifiable):
+                    #cell_style += "text-decoration: underline;"
+                    cell_view.setEnabled(False)
+                else:
+                    cell_view.setEnabled(True)
+
+                cell_view.setStyleSheet(cell_style)
+
+
+
+    def select_cell_event(self, i, j):
+        self.board.set_selected_cell(i,j)
+        self.update_board_view()
+
+    def input_number_event(self, number):
+        self.board.set_selected_cell_value(number)
+        self.update_board_view()
+
+    def erase_cell_event(self):
+        self.board.set_selected_cell_value(None)
+        self.update_board_view()
 
     def generate_board(self):
-        self.board = self.generate_sudoku()
-        self.update_board()
+        self.board.generate_sudoku_game()
+        self.update_board_view()
 
-    def save_game(self):
+    def save_game_event(self):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "Zapisz grę", "", "JSON Files (*.json);;All Files (*)", options=options)
-        if file_path:
-            with open(file_path, 'w') as file:
-                json.dump(self.board, file)
+        self.board.save(file_path)
 
     def load_game(self):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Wczytaj grę", "", "JSON Files (*.json);;All Files (*)", options=options)
-        if file_path:
-            with open(file_path, 'r') as file:
-                self.board = json.load(file)
-            self.update_board()
+        self.board.load_game(file_path)
+        self.update_board_view()
 
-    def show_about(self):
-        QMessageBox.about(self, "O aplikacji", "SudokuSolver to aplikacja do rozwiązywania sudoku.\n\nAutor: TwójAutor")
+    def show_about_event(self):
+        QMessageBox.about(self, "O aplikacji", "SudokuSolver to aplikacja do rozwiązywania sudoku.\n\nAutor: Łukasz Smoliński 184306")
 
-    def update_board(self):
-        for i in range(9):
-            for j in range(9):
-                value = self.board[i][j]
-                self.cells[i][j].setText(str(value) if value != 0 else "")
-                self.cells[i][j].setStyleSheet(self.get_cell_style(i, j))
-
-    def get_cell_position(self, button):
-        for i in range(9):
-            for j in range(9):
-                if self.cells[i][j] == button:
-                    return i, j
-        return None, None
-
-    def check_board(self):
-        for i in range(9):
-            for j in range(9):
-                if self.board[i][j] != 0:
-                    if not self.is_valid(i, j):
-                        self.cells[i][j].setStyleSheet(self.get_cell_style(i, j) + "color: red;")
-                    else:
-                        self.cells[i][j].setStyleSheet(self.get_cell_style(i, j) + "color: black;")
-
-    def is_valid(self, row, col):
-        num = self.board[row][col]
-        self.board[row][col] = 0
-
-        for i in range(9):
-            if self.board[row][i] == num or self.board[i][col] == num:
-                self.board[row][col] = num
-                return False
-
-        start_row, start_col = 3 * (row // 3), 3 * (col // 3)
-        for i in range(3):
-            for j in range(3):
-                if self.board[start_row + i][start_col + j] == num:
-                    self.board[row][col] = num
-                    return False
-
-        self.board[row][col] = num
-        return True
-
-    def generate_sudoku(self):
-        # Simple random sudoku generator for demonstration
-        # For a real sudoku generator, replace with a more complex algorithm
-        board = [[0 for _ in range(9)] for _ in range(9)]
-        for _ in range(30):
-            row, col = random.randint(0, 8), random.randint(0, 8)
-            while board[row][col] != 0:
-                row, col = random.randint(0, 8), random.randint(0, 8)
-            num = random.randint(1, 9)
-            board[row][col] = num
-            if not self.is_valid(row, col):
-                board[row][col] = 0
-        return board
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
