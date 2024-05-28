@@ -29,7 +29,7 @@ class SudokuSolver(QMainWindow):
         self.create_panel_layout()
 
         self.main_layout = QHBoxLayout()
-        self.main_layout.addLayout(self.board_layout, 2)
+        self.main_layout.addLayout(self.board_layout, 5)
         self.main_layout.addLayout(self.panel_layout, 1)
         self.central_widget.setLayout(self.main_layout)
 
@@ -59,7 +59,7 @@ class SudokuSolver(QMainWindow):
     def create_panel_layout(self):
         for number in range(1, 10):
             button = QPushButton(str(number))
-            button.setFixedSize(50, 50)
+            #button.setFixedSize(50, 50)
             button.setFont(QFont("Arial", 20))
             button.clicked.connect(lambda _, n=number: self.input_number_event(n))
             self.panel_layout.addWidget(button)

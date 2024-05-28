@@ -57,6 +57,7 @@ class SudokuSolver(Gtk.Window):
                         i = big_row * 3 + row
                         j = big_col * 3 + col
                         button = Gtk.Button(label="")
+                        button.modify_font(Pango.FontDescription("Arial 20"))
                         button.connect("clicked", self.select_cell_event, i, j)
                         self.cell_views[i][j] = button
                         inner_grid.attach(button, col, row, 1, 1)
