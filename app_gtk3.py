@@ -63,23 +63,6 @@ class SudokuSolver(Gtk.Window):
                         inner_grid.attach(button, col, row, 1, 1)
                 sudoku_grid.attach(frame, big_col, big_row, 1, 1)
 
-    # def create_board_layout_old(self, hbox):
-    #     grid = Gtk.Grid()
-    #     hbox.pack_start(grid, True, True, 0)
-        
-    #     self.cell_views = []
-    #     for i in range(9):
-    #         for j in range(9):
-    #             cell = self.create_board_cell(i, j)
-    #             grid.attach(cell, j, i, 1, 1)
-    #             self.cell_views.append(cell)
-
-    # def create_board_cell(self, i, j):
-    #     cell = Gtk.Button(label="", name="square-button")
-    #     cell.modify_font(Pango.FontDescription("Arial 20"))
-    #     cell.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse("white"))
-    #     cell.connect("clicked", self.select_cell_event, i, j)
-    #     return cell
 
     def create_panel_layout(self, hbox):
         panel_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
