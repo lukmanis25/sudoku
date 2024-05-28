@@ -1,0 +1,11 @@
+.selected-button {
+    background: lightblue;
+}
+
+.normal-button {
+    background: white;
+}
+
+.invalid {
+    color: red;
+}
